@@ -1554,9 +1554,7 @@ d3.json(typeof PHONE_BOOK !== "undefined" ? PHONE_BOOK
 
             //Pushing queue for combination set
             if(multiQueue.length > 0){
-                multiQueue.forEach(function(phone) {
-                    inits.push(phone);
-                });
+                inits = inits.concat(multiQueue);
             }
             //In case the entry is a single variable one
             else if(init===-2 ? isInit(r.fileName) : init>=0) { 
