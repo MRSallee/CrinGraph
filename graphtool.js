@@ -1015,7 +1015,9 @@ let baseURL;  // Set by setInitPhones
 function addPhonesToUrl() {
     let title = baseTitle,
         url = baseURL,
-        names = activePhones.map(p => p.fileName);
+        names = activePhones
+            .filter(p => !p.hasClone)
+            .map(p => p.fileName);
     if (names.length) {
         url += "?share=" + encodeURI(names.join().replace(/ /g,"_"));
         title = names.join(", ") + " - " + title;
@@ -1025,7 +1027,9 @@ function addPhonesToUrl() {
 }
 function updatePaths() {
     clearLabels();
-    let c = d3.merge(activePhones.map(p => p.activeCurves)),
+
+    let c = d3.merge(activePhones.filter(p => !p.hasClone)
+                                 .map(p => p.activeCurves)),
         p = gpath.selectAll("path").data(c, d=>d.id);
     p.join("path").attr("opacity", c=>c.p.hide?0:null)
         .classed("sample", c=>c.p.samp)
@@ -1033,18 +1037,24 @@ function updatePaths() {
     if (ifURL) addPhonesToUrl();
 }
 let colorBar = p=>'url(\'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5 8"><path d="M0 8v-8h1c0.05 1.5,-0.3 3,-0.16 5s0.1 2,0.15 3z" fill="'+getBgColor(p)+'"/></svg>\')';
-function updatePhoneTable() {
-    let c = table.selectAll("tr").data(activePhones, p=>p.id);
+function updatePhoneTable(p) {
+    let c = table.selectAll("tr").data(activePhones.filter(p => !p.hasClone), p=>p.id);
     c.exit().remove();
+    
+    if(p.hasClone){
+        console.log("HAS CLONE!");
+        return;
+    }
+    console.log("Continue");
     let f = c.enter().append("tr"),
         td = () => f.append("td");
-    f   .call(setHover, h => p => hl(p,h))
-        .style("color", p => getDivColor(p.id,true));
+    f.call(setHover, h => p => hl(p,h))
+     .style("color", p => getDivColor(p.id,true));
 
     td().attr("class","remove").text("⊗")
         .on("click", removePhone)
         .style("background-image",colorBar)
-        .filter(p=>!p.isTarget).append("svg").call(addColorPicker);
+        .filter(p=> !p.isTarget).append("svg").call(addColorPicker);
     td().attr("class",p=>p.isTarget?"item-line item-target":"item-line item-phone").html(p=>p.isTarget?"":"<span class=\"brand\">"+p.dispBrand+"</span>").call(addModel)
         //Change colors on clicking
 //        .filter(p=>!p.isTarget).call(addColorPicker);
@@ -1436,8 +1446,10 @@ function showPhone(p, exclusive, suppressVariant) {
         p.active = true;
         setCurves(p, avg);
     }
+    console.log(activePhones);
+    console.log(p);
     updatePaths();
-    updatePhoneTable();
+    updatePhoneTable(p);
     d3.selectAll("#phones div,.target")
         .filter(p=>p.id!==undefined)
         .call(setPhoneTr);
@@ -1465,7 +1477,7 @@ function removePhone(p) {
     }
     updatePaths();
     if (baseline.p && !baseline.p.active) { setBaseline(baseline0); }
-    updatePhoneTable();
+    updatePhoneTable(p);
     d3.selectAll("#phones div,.target")
         .filter(q=>q===(p.copyOf||p))
         .call(setPhoneTr);
@@ -1490,7 +1502,7 @@ d3.json(typeof PHONE_BOOK !== "undefined" ? PHONE_BOOK
     brands.forEach(function (b) {
         b.active = false;
         b.phoneObjs = b.phones.map(function (p) {
-            let r = { brand:b, dispBrand:b.name };
+            let r = { brand:b, dispBrand:b.name, hasClone: false };
             let init = -2;
             let multiQueue = [];
             if (typeof p === "string") {
@@ -1511,6 +1523,7 @@ d3.json(typeof PHONE_BOOK !== "undefined" ? PHONE_BOOK
                     r.fileNames = f;
                     let initMap = f.map(isInit);
                     let rInited = false;
+                    let hasClone = false;
 
                     //Init the loop for combination entry
                     initMap.forEach(function(isDisplayed, index) {
@@ -1520,6 +1533,8 @@ d3.json(typeof PHONE_BOOK !== "undefined" ? PHONE_BOOK
                         if(!rInited) {
                             r.fileName = f[index];
                             r.dispName = (r.dispNames||r.fileNames)[ind];
+
+                            //Pushing the orignal directly
                             rInited = true;
                         }
 
@@ -1531,8 +1546,17 @@ d3.json(typeof PHONE_BOOK !== "undefined" ? PHONE_BOOK
                             rLoop.dispName = rLoop.dispName || rLoop.phone;
                             rLoop.fullName = rLoop.dispBrand + " " + rLoop.phone;
                             multiQueue.push(rLoop);
+                            hasClone = true;
                         }
                     });
+
+                    //We set hasClone afterwards, the original object has been pushed so the pointer will do the rest.
+                    //We didn't do it right away because we don't want the clone to have this also
+                    r.hasClone = hasClone;
+                    if(r.hasClone){
+                        multiQueue.push(r);
+                    }
+
 
                     if (p.suffix) {
                         r.dispNames = p.suffix.map(
@@ -1545,6 +1569,8 @@ d3.json(typeof PHONE_BOOK !== "undefined" ? PHONE_BOOK
                             return p.name + (n.length ? " "+n : n);
                         });
                     }
+
+
                 }
             }
 
