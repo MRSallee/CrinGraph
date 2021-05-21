@@ -1040,12 +1040,6 @@ let colorBar = p=>'url(\'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/s
 function updatePhoneTable(p) {
     let c = table.selectAll("tr").data(activePhones.filter(p => !p.hasClone), p=>p.id);
     c.exit().remove();
-    
-    if(p.hasClone){
-        console.log("HAS CLONE!");
-        return;
-    }
-    console.log("Continue");
     let f = c.enter().append("tr"),
         td = () => f.append("td");
     f.call(setHover, h => p => hl(p,h))
@@ -1446,8 +1440,6 @@ function showPhone(p, exclusive, suppressVariant) {
         p.active = true;
         setCurves(p, avg);
     }
-    console.log(activePhones);
-    console.log(p);
     updatePaths();
     updatePhoneTable(p);
     d3.selectAll("#phones div,.target")
