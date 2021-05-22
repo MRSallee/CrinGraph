@@ -1016,7 +1016,6 @@ function addPhonesToUrl() {
     let title = baseTitle,
         url = baseURL,
         names = activePhones
-            .filter(p => !p.hasClone)
             .map(p => p.fileName);
     if (names.length) {
         url += "?share=" + encodeURI(names.join().replace(/ /g,"_"));
@@ -1037,8 +1036,8 @@ function updatePaths() {
     if (ifURL) addPhonesToUrl();
 }
 let colorBar = p=>'url(\'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5 8"><path d="M0 8v-8h1c0.05 1.5,-0.3 3,-0.16 5s0.1 2,0.15 3z" fill="'+getBgColor(p)+'"/></svg>\')';
-function updatePhoneTable(p) {
-    let c = table.selectAll("tr").data(activePhones.filter(p => !p.hasClone), p=>p.id);
+function updatePhoneTable() {
+    let c = table.selectAll("tr").data(activePhones, p=>p.id);
     c.exit().remove();
     let f = c.enter().append("tr"),
         td = () => f.append("td");
@@ -1205,7 +1204,8 @@ function updateKey(s) {
 }
 
 function addModel(t) {
-    t.each(function (p) { if (!p.vars) { p.vars = {}; } });
+    t.each(function (p) { 
+        if (!p.vars) { p.vars = {}; } });
     let n = t.append("div").attr("class","phonename").text(p=>p.dispName);
     t.filter(p=>p.fileNames)
         .append("div").attr("class","variants")
@@ -1287,6 +1287,7 @@ function updateVariant(p) {
 function changeVariant(p, update) {
     let fn = p.fileName,
         ch = p.vars[fn];
+
     function set(ch) {
         p.rawChannels = ch; p.smooth = undefined;
         smoothPhone(p);
@@ -1396,6 +1397,17 @@ doc.select(".addLock").on("click", function () {
 });
 
 function showPhone(p, exclusive, suppressVariant) {
+    if(p.varQueue){
+        let q = p.copyOf || p;
+        if (cantCompare(activePhones.length)) return;
+        if (!q.objs) { q.objs = [q]; }
+        p.active=true;
+        ["brand","dispBrand","fileNames","vars"].map(k=>p[k]=q[k]);
+        q.objs.push(p);
+        p.varQueue = false;
+        changeVariant(p, showPhone);
+        return;
+    }
     if (p.isTarget && activePhones.indexOf(p)!==-1) {
         removePhone(p);
         return;
@@ -1425,7 +1437,7 @@ function showPhone(p, exclusive, suppressVariant) {
         );
         if (baseline.p && !baseline.p.active) setBaseline(baseline0,1);
     }
-    if (activePhones.indexOf(p)===-1 && !p.objs) {
+    if (activePhones.indexOf(p)===-1 && (!p.objs || p.hasVariant)) {
         let avg = false;
         if (!p.isTarget) {
             let ap = activePhones.filter(p => !p.isTarget);
@@ -1441,7 +1453,7 @@ function showPhone(p, exclusive, suppressVariant) {
         setCurves(p, avg);
     }
     updatePaths();
-    updatePhoneTable(p);
+    updatePhoneTable();
     d3.selectAll("#phones div,.target")
         .filter(p=>p.id!==undefined)
         .call(setPhoneTr);
@@ -1469,7 +1481,7 @@ function removePhone(p) {
     }
     updatePaths();
     if (baseline.p && !baseline.p.active) { setBaseline(baseline0); }
-    updatePhoneTable(p);
+    updatePhoneTable();
     d3.selectAll("#phones div,.target")
         .filter(q=>q===(p.copyOf||p))
         .call(setPhoneTr);
@@ -1494,7 +1506,7 @@ d3.json(typeof PHONE_BOOK !== "undefined" ? PHONE_BOOK
     brands.forEach(function (b) {
         b.active = false;
         b.phoneObjs = b.phones.map(function (p) {
-            let r = { brand:b, dispBrand:b.name, hasClone: false };
+            let r = { brand:b, dispBrand:b.name};
             let init = -2;
             let multiQueue = [];
             if (typeof p === "string") {
@@ -1513,11 +1525,51 @@ d3.json(typeof PHONE_BOOK !== "undefined" ? PHONE_BOOK
                 } 
                 else {
                     r.fileNames = f;
-                    let initMap = f.map(isInit);
+//                    let initMap = f.map(isInit);
                     let rInited = false;
-                    let hasClone = false;
+//                    let hasClone = false;
+                    init = f.map(isInit).indexOf(true);
+                    let ind = Math.max(0, init);
+
+                    if(ind == 0 && init < 0){
+                        r.fileName = f[ind];
+                        r.dispName = (r.dispNames||r.fileNames)[ind];
+                    }
+                    else {
+                        let mapCopy = f.map(isInit);
+                        init = mapCopy.indexOf(true);
+                        while(init !== -1){
+                            let ind = Math.max(0, init);
+                            let rLoop = rInited ? {} : r;
+    
+                            rLoop.fileName = f[ind];
+                            rLoop.dispName = (r.dispNames||r.fileNames)[ind];
+                            if(!rLoop.vars){
+                                rLoop.vars = {};
+                            }
+    
+                            if(!rInited){
+                                rInited = true;
+                                mapCopy[ind] = false;
+                                init = mapCopy.indexOf(true);
+                                rLoop.hasVariant = true;
+                                inits.push(rLoop);
+                                continue;
+                            }
+
+                            rLoop.varQueue = true;
+                            rLoop.copyOf=r;
+                            inits.push(rLoop);
+
+                            mapCopy[ind] = false;
+                            init = mapCopy.indexOf(true);
+                        }     
+                    }
+                    
+
 
                     //Init the loop for combination entry
+                    /*
                     initMap.forEach(function(isDisplayed, index) {
                         let ind = Math.max(0, index);
 
@@ -1531,24 +1583,20 @@ d3.json(typeof PHONE_BOOK !== "undefined" ? PHONE_BOOK
                         }
 
                         //Clone the graph object and push into queue if it is going to be displayed.
-                        if(isDisplayed){
-                            let rLoop = Object.assign({}, r);
-                            rLoop.fileName = f[ind];
+                        if(isDisplayed && rInited){
+                            let rLoop = {};
+                            if (!r.objs) { r.objs = [r]; }
+                            rLoop.active=true; rLoop.copyOf=r;
+                            ["brand","dispBrand","fileNames","vars"].map(k=>rLoop[k]=r[k]);
+                            rLoop.fileName = rLoop.fileNames[ind];
                             rLoop.dispName = (rLoop.dispNames||rLoop.fileNames)[ind];
-                            rLoop.dispName = rLoop.dispName || rLoop.phone;
-                            rLoop.fullName = rLoop.dispBrand + " " + rLoop.phone;
+                            r.objs.push(rLoop);
+
                             multiQueue.push(rLoop);
-                            hasClone = true;
+                         //   hasClone = true;
                         }
                     });
-
-                    //We set hasClone afterwards, the original object has been pushed so the pointer will do the rest.
-                    //We didn't do it right away because we don't want the clone to have this also
-                    r.hasClone = hasClone;
-                    if(r.hasClone){
-                        multiQueue.push(r);
-                    }
-
+                    */
 
                     if (p.suffix) {
                         r.dispNames = p.suffix.map(
@@ -1570,12 +1618,8 @@ d3.json(typeof PHONE_BOOK !== "undefined" ? PHONE_BOOK
             r.dispName = r.dispName || r.phone;
             r.fullName = r.dispBrand + " " + r.phone;
 
-            //Pushing queue for combination set
-            if(multiQueue.length > 0){
-                inits = inits.concat(multiQueue);
-            }
-            //In case the entry is a single variable one
-            else if(init===-2 ? isInit(r.fileName) : init>=0) { 
+           //In case the entry is a single variable one
+            if(init===-2 ? isInit(r.fileName) : init>=0) { 
                 inits.push(r); 
             }
             return r;
