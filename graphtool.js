@@ -3233,12 +3233,12 @@ function userConfigApplyViewSettings(phoneInTable) {
 function userConfigApplyNormalization() {
     userConfigApplicationActive = 1;
     
-    let configJson = JSON.parse(localStorage.getItem("userConfig"));
+    let configJson = localStorage.getItem("userConfig") ? JSON.parse(localStorage.getItem("userConfig")) : 0;
     
-    if ( configJson.normalMode === "Hz" ) {
+    if ( configJson && configJson.normalMode === "Hz" ) {
         document.querySelector("input#norm-fr").value = configJson.normalValue;
         document.querySelector("input#norm-fr").dispatchEvent(new Event("change"));
-    } else if ( configJson.normalMode === "dB" ) {
+    } else if ( configJson && configJson.normalMode === "dB" ) {
         document.querySelector("input#norm-phon").value = configJson.normalValue;
         document.querySelector("input#norm-phon").dispatchEvent(new Event("change"));
     }
@@ -3260,22 +3260,25 @@ function storeUploadedTarget(file) {
 // Read uploaded target and load it
 function readUploadedTarget() {
     //return;
-    let contentFromStorage = localStorage.getItem("userUploadedTarget"),
-        filename = 'test.txt',
-        userUploadFile = new Blob([contentFromStorage], { type: 'text/plain' });
+    let contentFromStorage = localStorage.getItem("userUploadedTarget") ? localStorage.getItem("userUploadedTarget") : 0;
     
-    userUploadFile.name = filename;
-    
-    let fileFR = document.querySelector("#file-fr");
-    uploadType = "fr";
-    
-    // Attempt #2
-    let list = new DataTransfer();
-    let file = new File([userUploadFile], "Custom Target.txt", {type: "text/json"});
-    list.items.add(file);
+    if (contentFromStorage) {
+        let filename = 'test.txt',
+            userUploadFile = new Blob([contentFromStorage], { type: 'text/plain' });
 
-    let myFileList = list.files;
+        userUploadFile.name = filename;
 
-    fileFR.files = myFileList;
-    fileFR.dispatchEvent(new Event("change"));
+        let fileFR = document.querySelector("#file-fr");
+        uploadType = "fr";
+
+        // Attempt #2
+        let list = new DataTransfer();
+        let file = new File([userUploadFile], "Custom Target.txt", {type: "text/json"});
+        list.items.add(file);
+
+        let myFileList = list.files;
+
+        fileFR.files = myFileList;
+        fileFR.dispatchEvent(new Event("change"));
+    }
 }
