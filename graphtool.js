@@ -1773,6 +1773,12 @@ d3.json(typeof PHONE_BOOK !== "undefined" ? PHONE_BOOK
     function setClicks(fn) { return function (elt) {
         elt .on("mousedown", () => d3.event.preventDefault())
             .on("click", p => fn(p,!d3.event.ctrlKey))
+           .on("auxclick", p => d3.event.button===1 ? fn(p,0) : 0);
+    }; }
+
+    function setClicksTargets(fn) { return function (elt) {
+        elt .on("mousedown", () => d3.event.preventDefault())
+            .on("click", p => fn(p,0))
             .on("auxclick", p => d3.event.button===1 ? fn(p,0) : 0);
     }; }
 
@@ -1822,7 +1828,7 @@ d3.json(typeof PHONE_BOOK !== "undefined" ? PHONE_BOOK
             .style("flex-grow",t=>t.files.length).attr("class","targetClass")
             .selectAll().data(t=>t.files.map(ph))
             .join("div").text(t=>t.dispName).attr("class","target")
-            .call(setClicks(showPhone))
+            .call(setClicksTargets(showPhone))
             .data();
         ts.forEach((t,i) => {
             t.id = i-ts.length;
