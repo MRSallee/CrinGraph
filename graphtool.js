@@ -3188,7 +3188,7 @@ function userConfigAppendInits(initReq) {
 
         if (configJson) {
             initReq.slice(0).forEach(function(item) {
-                if (item.endsWith(' Target')) {
+                if (!item.endsWith(' Comp Target') && item.endsWith(' Target')) {
                     initReq.splice(initReq.indexOf(item), 1);
                 }
             });
