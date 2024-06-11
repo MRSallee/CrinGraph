@@ -1590,6 +1590,11 @@ function showPhone(p, exclusive, suppressVariant, trigger) {
             
             // Analytics event
             if (analyticsEnabled) { pushPhoneTag("phone_displayed", p, trigger); }
+            
+            // Fire global event for phone
+            let cEvent = new Event("phoneDisplayed");
+            cEvent.detail = p;
+            document.dispatchEvent(cEvent);
         });
         return;
     }
