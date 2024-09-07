@@ -1,3 +1,4 @@
+
 let doc = d3.select(".graphtool");
 doc.html(`
   <svg style="display: none;">
@@ -181,6 +182,8 @@ doc.html(`
                 <button class="readme">Readme</button>
                 <button class="import-filters">Import</button>
                 <button class="export-filters">Export</button>
+                <button hidden="true" class="pull-filters-fromdevice">Pull From Device</button>
+                <button hidden="true" class="push-filters-todevice">Push To Device</button>
                 <button class="export-graphic-filters">Export Graphic EQ (For Wavelet)</button>
               </div>
               <a style="display: none" id="file-filters-export"></a>
@@ -2317,6 +2320,7 @@ function blurFocus() {
 }
 blurFocus();
 
+
 // Add extra feature
 function addExtra() {
     let extraButton = document.querySelector("div.select > div.selector-tabs > button.extra");
@@ -2732,7 +2736,75 @@ function addExtra() {
             toneGeneratorPlayButton.innerText = "Stop";
         }
     });
-    
+
+
+    function updateButtonText(device) {
+        const pushButton = document.querySelector('.push-filters-todevice');
+        const pullButton = document.querySelector('.pull-filters-fromdevice');
+        if (device === undefined) {
+            // Remove "device" in the push and pull buttons
+            pushButton.textContent = "Push To Device";
+            pullButton.textContent = "Pull From Device";
+        } else {
+            // Remove "device" in the push and pull buttons
+            pushButton.textContent = pushButton.textContent.replace("To Device", device.model);
+            pullButton.textContent = pullButton.textContent.replace("From Device", device.model);
+        }
+    }
+
+    if (UsbHIDConnector.isWebHIDSupported()) {
+
+        // unhide the 2 new buttons
+        document.querySelector('.pull-filters-fromdevice').hidden = false;
+        document.querySelector('.push-filters-todevice').hidden = false;
+
+        // Add Event listener for "Pull From Device" button
+        document.querySelector('.pull-filters-fromdevice').addEventListener('click', async () => {
+
+            let connectedDevice = await UsbHIDConnector.getDeviceConnected();
+            // Update Push / Pull Button text to show device name
+            updateButtonText(connectedDevice);
+
+            if (typeof connectedDevice !== "undefined") {
+
+                // Proceed with pulling filters from the connected device
+                console.log('Pulling filters from device...');
+                UsbHIDConnector.pullFromDevice(connectedDevice, 0).then(filters => {
+                    // Update the filters now from the device
+                    if (filters.length > 0) {
+                        filtersToElem(filters);
+                        applyEQ();
+                    }
+                });
+            }
+        });
+
+        // Event listener for "Push To Device" button
+        document.querySelector('.push-filters-todevice').addEventListener('click', async () => {
+            let connectedDevice = await UsbHIDConnector.getDeviceConnected();
+            // Update Push / Pull Button text to show device name
+            updateButtonText(connectedDevice);
+
+            if (connectedDevice != null) {
+                // Proceed with pushing filters to the connected device
+                console.log('Pushing filters to device...');
+
+                let phoneSelected = eqPhoneSelect.value;
+                let phoneObj = phoneSelected && activePhones.filter(
+                    p => p.fullName == phoneSelected && p.eq)[0];
+                let filters = elemToFilters(true);
+                if (!phoneObj || !filters.length) {
+                    alert("Please select model and add at least one filter before push to device.");
+                    return;
+                }
+                let preamp = Equalizer.calc_preamp(
+                    phoneObj.rawChannels.filter(c => c)[0],
+                    phoneObj.eq.rawChannels.filter(c => c)[0]);
+
+                await UsbHIDConnector.pushToDevice(connectedDevice, 0, preamp, filters);
+            }
+        });
+    }
 }
 addExtra();
 
@@ -3257,3 +3329,30 @@ function userConfigApplyNormalization() {
     
     userConfigApplicationActive = 0;
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+
+    // Function to detect if the browser is Chrome-based
+    function isChromeBasedBrowser() {
+        const userAgent = navigator.userAgent;
+
+        // Check for Chrome, Brave, Bing, Arc in the user agent string
+        const isChrome = userAgent.includes("Chrome") && !userAgent.includes("Edge") && !userAgent.includes("OPR") && !userAgent.includes("Edg");
+        return isChrome;
+    }
+
+// Function to hide buttons if not using a Chrome-based browser
+    function hideHidDeviceButtonsIfNotChromeBased() {
+        if (!isChromeBasedBrowser()) {
+            // Select the buttons you want to hide
+            const button1 = document.querySelector('.push-filters-todevice')
+            const button2 = document.querySelector('.pull-filters-fromdevice');
+
+            // Hide the buttons
+            button1.style.display = 'none';
+            button2.style.display = 'none';
+        }
+    }
+
+    hideHidDeviceButtonsIfNotChromeBased();
+});

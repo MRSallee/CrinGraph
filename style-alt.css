@@ -903,10 +903,15 @@ div.filters-button {
     gap: 0 4px;
 }
 
+
 div.extra-panel button.sort-filters,
 div.extra-panel button.readme {
     flex: calc(50% - 2px) 0 0;
     border-color: var(--background-color-contrast) !important;
+}
+div.extra-panel button.pull-filters-fromdevice,
+div.extra-panel button.push-filters-todevice {
+    flex: calc(50% - 2px) 0 0;
 }
 
 div.extra-panel button.import-filters,
@@ -914,6 +919,12 @@ div.extra-panel button.export-filters {
     position: relative;
     
     flex: 100% 0 0;
+}
+
+div.extra-panel button#connect-device-button {
+    flex: 100% 0 0;
+    display: block;
+    margin-top: 10px; /* Optional: add some space above the connect button */
 }
 
 button.export-graphic-filters {
