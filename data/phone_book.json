@@ -1,5 +1,8 @@
 [
   {
+    "name":   "EQ test",
+    "phones": [ "Aful Performer5+2" ]
+  },  {
     "name": "Demo",
     "phones": [
         {"name":["Variations"],
