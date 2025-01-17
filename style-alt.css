@@ -909,6 +909,70 @@ div.extra-panel button.readme {
     border-color: var(--background-color-contrast) !important;
 }
 
+div.extra-panel > .device-eq.disabled {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+div.extra-panel > div.device-eq {
+    display: flex;
+    flex-direction: column;
+}
+
+div.extra-panel > div.device-eq > div.filters-button > button.connect-device,
+div.extra-panel > div.device-eq > div.filters-button > button.disconnect-device {
+    margin-bottom: 1em;
+}
+
+div.extra-panel > div.device-eq > h5 {
+    margin: 16px 0 8px 0;
+    font-size: 14px;
+    line-height: 1em;
+    color: var(--accent-color-contrast);
+}
+
+div.extra-panel > div.device-eq > div.filters-button > .pull-filters-fromdevice,
+div.extra-panel > div.device-eq > div.filters-button > .push-filters-todevice {
+    position: relative;
+    flex: 1;
+}
+
+div.extra-panel > div.device-eq > .push-filters-todevice {
+    margin-right: 0;
+}
+
+/* Ensure PEQ slot is below the buttons and full-width */
+div.extra-panel > div.device-eq > .peq-slot-area {
+    display: block;
+    width: 100%;
+    margin-bottom: 0.5em;
+}
+
+div.extra-panel button#connect-device-button {
+    flex: 100% 0 0;
+    display: block;
+    margin-top: 10px; /* Optional: add some space above the connect button */
+}
+
+div.extra-panel select[name="device-peq-slot"] {
+    background-position:
+            calc(100% - 14px) calc(1em + 3px),
+            calc(100% - 9px) calc(1em + 3px);
+}
+
+div.extra-panel > div.device-eq > div.peq-slot-area > select {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 10px;
+
+    border: 1px solid var(--background-color-contrast-more);
+    border-radius: 6px;
+}
+
+div.filters-button button {
+    flex: calc(50% - 2px) 1 1;
+}
+
 div.extra-panel button.import-filters,
 div.extra-panel button.export-filters {
     position: relative;
@@ -1110,7 +1174,7 @@ div.extra-panel select[name="phone"] {
     calc(100% - 9px) calc(1em + 3px);
 }
 
-div.extra-panel > div.extra-eq > div.select-eq-phone,
+div.extra-panel > div.extra-eq > div.select-eq-phone, div.peq-slot-area
 div.extra-panel > div.extra-eq > div.filters,
 div.extra-panel div.settings-row {
     margin: 0 0 0.5em 0;
